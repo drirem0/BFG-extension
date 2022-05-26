@@ -76,10 +76,6 @@ public class UpdBatchInvLins extends ExtendM3Transaction {
   	if (inbn == "?") {
   	  inbn = "";
   	} 
-  	trno = mi.inData.get("TRNO") == null ? '' : mi.inData.get("TRNO").trim();
-  	if (trno == "?") {
-  	  trno = "";
-  	} 
   	//Validate input fields
     if (!cono.isEmpty()) {
 			if (cono.isInteger()){
@@ -99,12 +95,8 @@ public class UpdBatchInvLins extends ExtendM3Transaction {
       mi.error("Invoice batch number must be entered");
       return;
     }
-    if (trno.isEmpty()) {
-      mi.error("Transaction number must be entered");
-      return;
-    }
     // Get record from FAPIBH
-    DBAction queryFAPIBH = database.table("FAPIBH").index("00").selection("E5SUPA").build()
+    DBAction queryFAPIBH = database.table("FAPIBH").index("00").selection("E5SUPA").build();
     DBContainer FAPIBH = queryFAPIBH.getContainer();
     FAPIBH.set("E5CONO", XXCONO);
     FAPIBH.set("E5DIVI", divi);
@@ -120,20 +112,20 @@ public class UpdBatchInvLins extends ExtendM3Transaction {
     }
     currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
     
-    DBAction actionFAPIBL = database.table("FAPIBL").index("00").build();
-    DBContainer FAPIBL = actionFAPIBL.getContainer();
+    DBAction queryFAPIBL = database.table("FAPIBL").index("00").selection("E6TRNO", "E6RDTP", "E6FAV5","E6PUNO", "E6PNLI", "E6PNLS", "E6REPN", "E6RELP").build();
+    DBContainer FAPIBL = queryFAPIBL.getContainer();
 		FAPIBL.set("E6CONO", XXCONO);
 		FAPIBL.set("E6DIVI", divi);
 		FAPIBL.set("E6INBN", inbn.toInteger());
-		FAPIBL.set("E6TRNO", trno.toInteger());
-		actionFAPIBL.readLock(FAPIBL, updateFAPIBL);
+		queryFAPIBL.readAll(FAPIBL, 3, lstFAPIBL);
   }
   
   /*
-  * updateFAPIBL - Callback function
+  * lstFAPIBL - Callback function
   *
   */
-  Closure<?> updateFAPIBL = { LockedResult FAPIBL ->
+  Closure<?> lstFAPIBL = { DBContainer FAPIBL ->
+    String trno = FAPIBL.get("E6TRNO").toString().trim();
     String rdtp = FAPIBL.get("E6RDTP").toString().trim();
     String fav5 = FAPIBL.get("E6FAV5").toString().trim();
     String puno = FAPIBL.get("E6PUNO").toString().trim();
@@ -143,9 +135,32 @@ public class UpdBatchInvLins extends ExtendM3Transaction {
     String relp = FAPIBL.get("E6RELP").toString().trim();
     // - already updated, don't do second time
     if (fav5.toDouble() == 1) {
-      FAPIBL.update();
       return;
     }
+    if (rdtp.toInteger() != 1 && rdtp.toInteger() != 5) {
+      return;
+    }
+    DBAction actionFAPIBL1 = database.table("FAPIBL").index("00").build();
+    DBContainer FAPIBL1 = actionFAPIBL1.getContainer();
+		FAPIBL1.set("E6CONO", XXCONO);
+		FAPIBL1.set("E6DIVI", divi);
+		FAPIBL1.set("E6INBN", inbn.toInteger());
+    FAPIBL1.set("E6TRNO", trno.toInteger());
+    actionFAPIBL1.readLock(FAPIBL1, updateFAPIBL1);
+  }
+  /*
+   * updateFAPIBL1 - update FAPBIL
+   *
+  */
+  Closure updateFAPIBL1 = { LockedResult FAPIBL ->
+    String trno = FAPIBL.get("E6TRNO").toString().trim();
+    String rdtp = FAPIBL.get("E6RDTP").toString().trim();
+    String fav5 = FAPIBL.get("E6FAV5").toString().trim();
+    String puno = FAPIBL.get("E6PUNO").toString().trim();
+    String pnli = FAPIBL.get("E6PNLI").toString().trim();
+    String pnls = FAPIBL.get("E6PNLS").toString().trim();
+    String repn = FAPIBL.get("E6REPN").toString().trim();
+    String relp = FAPIBL.get("E6RELP").toString().trim();
     // - if line type is 1, update FGRPCL
     if (rdtp.toInteger() == 1) {
       FAPIBL.set("E6FAV5", 1); // set flag ON to indicates it has been calculated.
@@ -174,12 +189,9 @@ public class UpdBatchInvLins extends ExtendM3Transaction {
       FAPIBL.set("E6CHNO",  FAPIBL.get("E6CHNO").toString().toInteger() +1);
       FAPIBL.set("E6CHID", program.getUser()); 
       FAPIBL.update();
-    } else {
-      FAPIBL.update();
-      return;
     }
   }
-   /*
+  /*
    * updateGoodsReceiptLineCharges - update goods receipt line charges
    *
   */
@@ -195,7 +207,7 @@ public class UpdBatchInvLins extends ExtendM3Transaction {
 		FGRPCL.set("F3RELP", relp.toInteger());
 		actionFGRPCL.readAllLock(FGRPCL,7, updateFGRPCL);
   }
-   /*
+  /*
   * updateFGRPCL - Callback function
   *
   */
