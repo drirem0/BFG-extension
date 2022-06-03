@@ -35,6 +35,7 @@
  *Nbr               Date      User id     Description
  *ABF_R_200         20220405  RDRIESSEN   Mods BF0200- Write/Update EXTAPR records as a basis for PO authorization process
  *ABF_R_200         20220511  KVERCO      Update for XtendM3 review feedback
+ *ABF_R_200         20220603  KVERCO      Bug fixing - populate XXCONO
  *
 */
 
@@ -73,6 +74,7 @@ public class Get extends ExtendM3Transaction {
       mi.error("PO number must be entered");
       return;
     }
+    XXCONO = (Integer)program.LDAZD.CONO;
     
     DBAction query = database.table("EXTAPR").index("00").selection("EXCONO", "EXPUNO", "EXAPPR", "EXASTS").build();
     DBContainer container = query.getContainer();
