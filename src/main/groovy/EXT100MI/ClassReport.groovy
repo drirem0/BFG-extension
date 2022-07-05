@@ -25,6 +25,7 @@
  *Modification area - M3
  *Nbr               Date      User id     Description
  *ABF_R_0100        20220405  RDRIESSEN   Mods BF0100- Write to extension file EXTCLX as a basis for Receival and Classification Docket
+ *ABF_R_0101        20220706  RDRIESSEN   Mods BF0100- exclude pusl = '99' , exclude write of detail lines in report 
  *
  */
  
@@ -55,6 +56,7 @@ public class ClassReport extends ExtendM3Transaction {
   private String bano;
   private String itno;
   private String puno;
+  private String pusl;
   private String pnli;
   private String grad;
   private String suno;
@@ -115,6 +117,8 @@ public class ClassReport extends ExtendM3Transaction {
   private String adj22x;
   private String adj23x;
   private String adj24x;
+  private String ad1r;
+  
   private String bref;
   private String cua1;
   private String cua2;
@@ -296,14 +300,6 @@ public class ClassReport extends ExtendM3Transaction {
   }
   
   /*
-  * error if record exists
-  *
-  */
-  Closure recordExists = {
-	  mi.error("Record already exists");
-  }
-  
-  /*
   * releasedItemProcessor - - Callback function to return MITTRA records
   *
   */
@@ -327,11 +323,11 @@ public class ClassReport extends ExtendM3Transaction {
     }
   
 	  miCaller.call("MMS235MI","GetItmLot", params01, callback01);	
-  
+	  
+	  
     getAttributes(atnr);
    
   }
-  
   
   /*
   * get attributes for the selected lotnumber retrieved from the previous MI call MMS235MI*
@@ -496,7 +492,6 @@ public class ClassReport extends ExtendM3Transaction {
       
       if(response.ATID.trim().equals("CHM04")){
         writeheader();
-        writelines();
       }
     }
     
@@ -522,730 +517,89 @@ public class ClassReport extends ExtendM3Transaction {
     
     miCaller.call("CRS620MI","GetBasicData", paramsx, callbackx);	
       
+    
+    DBAction queryc = database.table("MPLINE").index("00").selection("IBCONO", "IBPUNO", "IBPNLI", "IBPNLS", "IBPUSL").build();
+    DBContainer containerc = queryc.getContainer();
+    containerc.set("IBCONO", XXCONO);
+    containerc.set("IBPUNO", puno.toString());
+    containerc.set("IBPNLI", pnli.toDouble());
+    containerc.set("IBPNLS", 0);
+    if (queryc.read(containerc)) {
+      pusl = containerc.get("IBPUSL");
+    }
+    
+    logger.debug('posting ' + pusl);
+    
+    ad1r = '';
+    
+    if(adj01 != null && adj01.trim() != 'N.') { ad1r += adj01x.trim() + ' - ';  }
+    if(adj02 != null && adj02.trim() != 'N.') { ad1r += adj02x.trim() + ' - ';  }
+    if(adj03 != null && adj03.trim() != 'N.') { ad1r += adj03x.trim() + ' - ';  }
+    if(adj04 != null && adj04.trim() != 'N.') { ad1r += adj04x.trim() + ' - ';  }
+    if(adj05 != null && adj05.trim() != 'N.') { ad1r += adj05x.trim() + ' - ';  }
+    if(adj06 != null && adj06.trim() != 'N.') { ad1r += adj06x.trim() + ' - ';  }
+    if(adj07 != null && adj07.trim() != 'N.') { ad1r += adj07x.trim() + ' - ';  }
+    if(adj08 != null && adj08.trim() != 'N.') { ad1r += adj08x.trim() + ' - ';  }
+    if(adj09 != null && adj09.trim() != 'N.') { ad1r += adj09x.trim() + ' - ';  }
+    if(adj10 != null && adj10.trim() != 'N.') { ad1r += adj10x.trim() + ' - ';  }
+    if(adj11 != null && adj11.trim() != 'N.') { ad1r += adj11x.trim() + ' - ';  }
+    if(adj12 != null && adj12.trim() != 'N.') { ad1r += adj12x.trim() + ' - ';  }
+    if(adj13 != null && adj13.trim() != 'N.') { ad1r += adj13x.trim() + ' - ';  }
+    if(adj14 != null && adj14.trim() != 'N.') { ad1r += adj14x.trim() + ' - ';  }
+    if(adj15 != null && adj15.trim() != 'N.') { ad1r += adj15x.trim() + ' - ';  }
+    if(adj16 != null && adj16.trim() != 'N.') { ad1r += adj16x.trim() + ' - ';  }
+    if(adj17 != null && adj17.trim() != 'N.') { ad1r += adj17x.trim() + ' - ';  }
+    if(adj18 != null && adj18.trim() != 'N.') { ad1r += adj18x.trim() + ' - ';  }
+    if(adj19 != null && adj19.trim() != 'N.') { ad1r += adj19x.trim() + ' - ';  }
+    if(adj20 != null && adj20.trim() != 'N.') { ad1r += adj20x.trim() + ' - ';  }
+    if(adj21 != null && adj21.trim() != 'N.') { ad1r += adj21x.trim() + ' - ';  }
+    if(adj22 != null && adj22.trim() != 'N.') { ad1r += adj22x.trim() + ' - ';  }
+    if(adj23 != null && adj23.trim() != 'N.') { ad1r += adj23x.trim() + ' - ';  }
+    if(adj24 != null && adj24.trim() != 'N.') { ad1r += adj24x.trim() + ' - ';  }
+    
+    
     int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
     int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
        
     DBAction actionEXTCLX = database.table("EXTCLX").build();
     DBContainer EXTCLX = actionEXTCLX.getContainer();
     
-    // Write EXTCLX header line of delivery docket
-    EXTCLX.set("EXCONO", XXCONO);
-    EXTCLX.set("EXDIVI", divi);
-    EXTCLX.set("EXWHLO", whlo);
-    EXTCLX.set("EXSUNO", suno);
-    EXTCLX.set("EXSUM1", sunm);
-    EXTCLX.set("EXSUDO", sudo);
-    EXTCLX.set("EXGRAD", grad);
-    EXTCLX.set("EXSEQ1", 0);
-    EXTCLX.set("EXPUNO", puno);
-    EXTCLX.set("EXPNLI", pnli.toDouble());
-    EXTCLX.set("EXLTYP", 0);
-    EXTCLX.set("EXLOTS", 1);
-    EXTCLX.set("EXGRWE", grwe.toDouble());
-    EXTCLX.set("EXTAWE", tawe.toDouble());
-    EXTCLX.set("EXNEWE", newe.toDouble());
-    EXTCLX.set("EXADJ1", '');
-    EXTCLX.set("EXCAR1", car1);
-    EXTCLX.set("EXLOA1", loa1);
-    EXTCLX.set("EXSUM1", carm);
-    EXTCLX.set("EXSUM2", loam);
-    EXTCLX.set("EXBREF", bref);
-    EXTCLX.set("EXRGDT", currentDate);
-    EXTCLX.set("EXRGTM", currentTime);
-    EXTCLX.set("EXCHNO", 0);
-    EXTCLX.set("EXCHID", program.getUser());
-    actionEXTCLX.insert(EXTCLX, recordExists);
+    if (pusl != '99') {
+    
+      // Write EXTCLX header line of delivery docket
+      EXTCLX.set("EXCONO", XXCONO);
+      EXTCLX.set("EXDIVI", divi);
+      EXTCLX.set("EXWHLO", whlo);
+      EXTCLX.set("EXSUNO", suno);
+      EXTCLX.set("EXSUM1", sunm);
+      EXTCLX.set("EXSUDO", sudo);
+      EXTCLX.set("EXGRAD", grad);
+      EXTCLX.set("EXSEQ1", 0);
+      EXTCLX.set("EXPUNO", puno);
+      EXTCLX.set("EXPNLI", pnli.toDouble());
+      EXTCLX.set("EXLTYP", 0);
+      EXTCLX.set("EXLOTS", 1);
+      EXTCLX.set("EXGRWE", grwe.toDouble());
+      EXTCLX.set("EXTAWE", tawe.toDouble());
+      EXTCLX.set("EXNEWE", newe.toDouble());
+      EXTCLX.set("EXADJ1", ad1r);
+      EXTCLX.set("EXCAR1", car1);
+      EXTCLX.set("EXLOA1", loa1);
+      EXTCLX.set("EXSUM1", carm);
+      EXTCLX.set("EXSUM2", loam);
+      EXTCLX.set("EXBREF", bref);
+      EXTCLX.set("EXRGDT", currentDate);
+      EXTCLX.set("EXRGTM", currentTime);
+      EXTCLX.set("EXCHNO", 0);
+      EXTCLX.set("EXCHID", program.getUser());
+      actionEXTCLX.insert(EXTCLX, recordExists);
+    }
   }
-
-  
-/*
-* Write EXTCLX detail records depending on the number of adjustments made per lot number
-*
-*/
-
-  def writelines() {
-  
-    int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
-  	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
-  	int currentCompany = (Integer)program.getLDAZD().CONO;
-     
-  	DBAction actionEXTCLX = database.table("EXTCLX").build();
-  	DBContainer EXTCLX = actionEXTCLX.getContainer();
-  
-    if(adj01 != null && adj01.trim() != 'N.') {
-  
-      // Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 1);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj01x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-  	  actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-  
-   
-    if(adj02 != null && adj02.trim() != 'N.') {
-  
-    	// Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 2);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj02x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-  	  actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj03 != null && adj03.trim() != 'N.') {
-  
-    // Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 3);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj03x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-  	  actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-   
-    if(adj04 != null && adj04.trim() != 'N.') {
-  
-    // Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 4);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj04x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-  	  actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj05 != null && adj05.trim() != 'N.') {
-  
-      // Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 5);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj05x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-  	  actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj06 != null && adj06.trim() != 'N.') {
-  
-      // Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 6);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj06x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj07 != null && adj07.trim() != 'N.') {
-  
-    	// Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 7);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj07x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj08 != null && adj08.trim() != 'N.') {
-  
-    		// Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 8);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj08x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj09 != null && adj09.trim() != 'N.') {
-  
-    	// Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 9);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj09x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj10 != null && adj10.trim() != 'N.') {
-  
-  	// Write EXTCLX
-      EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 10);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj10x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj11 != null && adj11.trim() != 'N.') {
-  
-      // Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 11);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj11x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj12 != null && adj12.trim() != 'N.') {
-  
-    	// Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 12);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj12x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj13 != null && adj13.trim() != 'N.') {
-  
-    	// Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 13);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj13x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-  	  actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj14 != null && adj14.trim() != 'N.') {
-  
-      // Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 14);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj14x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj15 != null && adj15.trim() != 'N.') {
-  
-    // Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 15);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj15x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj16 != null && adj16.trim() != 'N.') {
-  
-    // Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 16);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj16x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj17 != null && adj17.trim() != 'N.') {
-  
-    		// Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 17);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj17x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj18 != null && adj18.trim() != 'N.') {
-  
-    		// Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 18);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj18x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj19 != null && adj19.trim() != 'N.') {
-  
-    		// Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 19);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj19x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj20 != null && adj20.trim() != 'N.') {
-  
-      // Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 20);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj20x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj21 != null && adj21.trim() != 'N.') {
-  
-    	// Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 21);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj21x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj22 != null && adj22.trim() != 'N.') {
-  
-    		// Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 22);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj22x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-  	}
-   
-    if(adj23 != null && adj23.trim() != 'N.') {
-  
-      // Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 23);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj23x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-   
-    if(adj24 != null && adj24.trim() != 'N.') {
-  
-      // Write EXTCLX
-  	  EXTCLX.set("EXCONO", currentCompany);
-  	  EXTCLX.set("EXDIVI", divi);
-  	  EXTCLX.set("EXWHLO", whlo);
-  	  EXTCLX.set("EXSUNO", suno);
-  	  EXTCLX.set("EXSUDO", sudo);
-  	  EXTCLX.set("EXGRAD", grad);
-  	  EXTCLX.set("EXSEQ1", 24);
-  	  EXTCLX.set("EXPUNO", puno);
-  	  EXTCLX.set("EXPNLI", pnli.toDouble());
-  	  EXTCLX.set("EXLTYP", 1);
-  	  EXTCLX.set("EXLOTS", 0);
-  	  EXTCLX.set("EXGRWE", 0);
-  	  EXTCLX.set("EXTAWE", 0);
-  	  EXTCLX.set("EXNEWE", 0);
-  	  EXTCLX.set("EXADJ1", adj24x);
-  	  EXTCLX.set("EXCAR1", car1);
-  	  EXTCLX.set("EXLOA1", loa1);
-  	  EXTCLX.set("EXBREF", bref);
-  	  EXTCLX.set("EXRGDT", currentDate);
-  	  EXTCLX.set("EXRGTM", currentTime);
-  	  EXTCLX.set("EXCHNO", 0);
-  	  EXTCLX.set("EXCHID", program.getUser());
-    	actionEXTCLX.insert(EXTCLX, recordExists);
-    }
-  
+  /*
+  * error if record exists
+  *
+  */
+  Closure recordExists = {
+	  mi.error("Record already exists");
   }
-
 }
