@@ -26,6 +26,8 @@
  *Nbr               Date      User id     Description
  *ABF_R_0100        20220405  RDRIESSEN   Mods BF0100- Write to extension file EXTCLX as a basis for Receival and Classification Docket
  *ABF_R_0101        20220706  RDRIESSEN   Mods BF0100- exclude pusl = '99' , exclude write of detail lines in report 
+ *ABF_R_0102        20220708  RDRIESSEN   Mods BF0100- run report to cater for multiple items per PO       
+ 
  *
  */
  
@@ -171,11 +173,7 @@ public class ClassReport extends ExtendM3Transaction {
   	  sudo = "";
   	} 
   	
-  	itno = mi.inData.get("ITNO") == null ? '' : mi.inData.get("ITNO").trim();
-  	if (itno == "?") {
-  	  itno = "";
-  	} 
-  	
+  
   	//Validate input fields
     if (!cono.isEmpty()) {
 			if (cono.isInteger()){
@@ -233,17 +231,7 @@ public class ClassReport extends ExtendM3Transaction {
       return;
     }
   	
-  	// - validate itno
-    DBAction queryMITMAS = database.table("MITMAS").index("00").selection("MMITNO").build();
-    DBContainer MITMAS = queryMITMAS.getContainer();
-    MITMAS.set("MMCONO", XXCONO);
-    MITMAS.set("MMITNO", itno);
-    if (!queryMITMAS.read(MITMAS)) {
-      mi.error("Item no is invalid.");
-      return;
-    }
-  	
-  	// delete report workfile entries, subsequently recreate.
+    	// delete report workfile entries, subsequently recreate.
     deleteEXTCLX(cono, divi, whlo, suno, sudo);
     writeEXTCLX(cono, divi, whlo, suno, sudo);
     
@@ -293,9 +281,8 @@ public class ClassReport extends ExtendM3Transaction {
     DBContainer container = query.getContainer();
     container.set("MTCONO", XXCONO);
     container.set("MTWHLO", whlo);
-    container.set("MTITNO", itno);
- 
-    query.readAll(container, 3, releasedItemProcessor);
+  
+    query.readAll(container, 2, releasedItemProcessor);
 
   }
   
