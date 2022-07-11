@@ -26,6 +26,8 @@
  *Nbr               Date      User id     Description
  *ABF_R_0100        20220405  RDRIESSEN   Mods BF0100- Write to extension file EXTCLX as a basis for Receival and Classification Docket
  *ABF_R_0101        20220706  RDRIESSEN   Mods BF0100- exclude pusl = '99' , exclude write of detail lines in report 
+     
+ 
  *
  */
  
@@ -170,12 +172,12 @@ public class ClassReport extends ExtendM3Transaction {
   	if (sudo == "?") {
   	  sudo = "";
   	} 
-  	
   	itno = mi.inData.get("ITNO") == null ? '' : mi.inData.get("ITNO").trim();
   	if (itno == "?") {
   	  itno = "";
   	} 
   	
+  
   	//Validate input fields
     if (!cono.isEmpty()) {
 			if (cono.isInteger()){
@@ -232,8 +234,8 @@ public class ClassReport extends ExtendM3Transaction {
       mi.error("Delivery No is invalid.");
       return;
     }
-  	
-  	// - validate itno
+    
+    // - validate itno
     DBAction queryMITMAS = database.table("MITMAS").index("00").selection("MMITNO").build();
     DBContainer MITMAS = queryMITMAS.getContainer();
     MITMAS.set("MMCONO", XXCONO);
@@ -242,8 +244,11 @@ public class ClassReport extends ExtendM3Transaction {
       mi.error("Item no is invalid.");
       return;
     }
+    
+    
+    
   	
-  	// delete report workfile entries, subsequently recreate.
+    	// delete report workfile entries, subsequently recreate.
     deleteEXTCLX(cono, divi, whlo, suno, sudo);
     writeEXTCLX(cono, divi, whlo, suno, sudo);
     
@@ -289,12 +294,12 @@ public class ClassReport extends ExtendM3Transaction {
   	
     ExpressionFactory expression = database.getExpressionFactory("MITTRA");
     expression = expression.eq("MTSUDO", sudo);
-    DBAction query = database.table("MITTRA").index("90").matching(expression).selection("MTCONO", "MTSUDO", "MTRGDT", "MTBANO", "MTITNO", "MTRIDN", "MTRIDL", "MTBREF").build();
+    DBAction query = database.table("MITTRA").index("90").matching(expression).selection("MTCONO", "MTSUDO", "MTRGDT", "MTRGTM", "MTTMSX", "MTBANO", "MTITNO", "MTRIDN", "MTRIDL", "MTBREF").build();
     DBContainer container = query.getContainer();
     container.set("MTCONO", XXCONO);
     container.set("MTWHLO", whlo);
     container.set("MTITNO", itno);
- 
+  
     query.readAll(container, 3, releasedItemProcessor);
 
   }
@@ -499,24 +504,19 @@ public class ClassReport extends ExtendM3Transaction {
 	 
   }
   
-  
-   
   /*
   * Write EXTCLX header record
   *
   */
   def writeheader() {
-    
-   def paramsx = ["SUNO":suno.toString()] // toString is needed to convert from gstring to string
-   def callbackx = {
-    Map<String, String> response ->
-      if(response.SUNM != null){
-        sunm = response.SUNM;  
-      }
-    }
-    
-    miCaller.call("CRS620MI","GetBasicData", paramsx, callbackx);	
-      
+  
+    DBAction query = database.table("CIDMAS").index("00").selection("IDCONO", "IDSUNO", "IDSUNM").build()
+    DBContainer container = query.getContainer()
+    container.set("IDCONO", XXCONO)
+    container.set("IDSUNO", suno.toString())
+    if (query.read(container)) {
+      sunm = container.get("IDSUNM")
+    }  
     
     DBAction queryc = database.table("MPLINE").index("00").selection("IBCONO", "IBPUNO", "IBPNLI", "IBPNLS", "IBPUSL").build();
     DBContainer containerc = queryc.getContainer();
@@ -527,8 +527,6 @@ public class ClassReport extends ExtendM3Transaction {
     if (queryc.read(containerc)) {
       pusl = containerc.get("IBPUSL");
     }
-    
-    logger.debug('posting ' + pusl);
     
     ad1r = '';
     
