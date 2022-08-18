@@ -33,6 +33,7 @@
  *Modification area - M3
  *Nbr               Date      User id     Description
  *BF_R_1070         20220225  XWZHAO      AR night run
+ *BF_R_1070         20220818  XWZHAO      Add job run time to input parameters
  *
  */
  
@@ -49,6 +50,8 @@ public class AddARNightRun extends ExtendM3Transaction {
   private String divi;
   private String pyno;
   private String xnow;
+  private String xjtm;
+  
   
   private int XXCONO;
   
@@ -72,6 +75,11 @@ public class AddARNightRun extends ExtendM3Transaction {
   	xnow = mi.inData.get("XNOW") == null ? '' : mi.inData.get("XNOW").trim();
   	if (xnow == "?") {
   	  xnow = "";
+  	}
+  	//A WZHAO 20220818 - new input parameter XJTM
+  	xjtm = mi.inData.get("XJTM") == null ? '' : mi.inData.get("XJTM").trim();
+  	if (xjtm == "?") {
+  	  xjtm = "";
   	}
   	XXCONO= program.LDAZD.CONO;
   	if (divi.isEmpty()) {
@@ -102,7 +110,10 @@ public class AddARNightRun extends ExtendM3Transaction {
       def params = ["JOB": "EXT840", "TX30": "AR NightRun", "XCAT": "010", "SCTY": "1", "XNOW": "1", "UUID": referenceId]; // ingle run - now
       miCaller.call("SHS010MI", "SchedXM3Job", params, { result -> });
     } else {
-      def params = ["JOB": "EXT840", "TX30": "AR NightRun", "XCAT": "010", "SCTY": "2", "XNOW": "", "XEMO": "1", "XETU": "1", "XEWE": "1", "XETH": "1", "XEFR": "1", "XESA": "1", "XESU": "1","XJTM": "210000", "UUID": referenceId]; // run every night
+      if (xjtm.isEmpty()) {
+        xjtm = "230000";
+      }
+      def params = ["JOB": "EXT840", "TX30": "AR NightRun", "XCAT": "010", "SCTY": "2", "XNOW": "", "XEMO": "1", "XETU": "1", "XEWE": "1", "XETH": "1", "XEFR": "1", "XESA": "1", "XESU": "1","XJTM": xjtm, "UUID": referenceId]; // run every night
       miCaller.call("SHS010MI", "SchedXM3Job", params, { result -> });
     }
     
