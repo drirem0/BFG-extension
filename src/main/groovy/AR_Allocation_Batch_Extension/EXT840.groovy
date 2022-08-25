@@ -36,6 +36,7 @@
  *Modification area - M3
  *Nbr            Date       User id     Description
  *BF_R_1070      20220225   WZHAO       AR allocation night run
+ *BF_R_1070      20220822   WZHAO       Add conditions (expression) to read FSLEDG for Scenario 3 matching
  */
  
  /*
@@ -468,7 +469,11 @@ public class EXT840 extends ExtendM3Batch {
       return;
     }  
     CINO2 = oCINO.substring(0, oCINO.length() - 1);
-    DBAction queryFSLEDG = database.table("FSLEDG").index("10").selection("ESCONO", "ESDIVI", "ESPYNO", "ESCUNO", "ESCINO", "ESINYR", "ESCUAM").build();
+    //A WZHAO 20220822 - Add expression
+    ExpressionFactory expression = database.getExpressionFactory("FSLEDG");
+    expression = expression.eq("ESRECO", "0");
+    expression = expression.and(expression.gt("ESCUAM", "0.00"));
+    DBAction queryFSLEDG = database.table("FSLEDG").index("10").matching(expression).selection("ESCONO", "ESDIVI", "ESPYNO", "ESCUNO", "ESCINO", "ESINYR", "ESCUAM").build();
     DBContainer FSLEDG = queryFSLEDG.getContainer();
     FSLEDG.set("ESCONO", XXCONO);
     FSLEDG.set("ESDIVI", divi);
@@ -504,7 +509,7 @@ public class EXT840 extends ExtendM3Batch {
       amt = cuam2.toDouble();
     }
     
-    def map = [PYNO: savedPYNO, CUNO: savedCUNO, CINO: savedCINO, CUAM: (-1).toString(), INYR: savedINYR, PYNO2: pyno2, CUNO2: cuno2, CINO2: cino2, CUAM2: amt.toString(), INYR2: inyr2];
+    def map = [PYNO: savedPYNO, CUNO: savedCUNO, CINO: savedCINO, CUAM: (-amt).toString(), INYR: savedINYR, PYNO2: pyno2, CUNO2: cuno2, CINO2: cino2, CUAM2: amt.toString(), INYR2: inyr2];
     lstMatchedRecords.add(map);
     
   }
