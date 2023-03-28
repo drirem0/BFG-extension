@@ -33,6 +33,7 @@
  *Modification area - M3
  *Nbr               Date      User id     Description
  *BF_R_1072         20220325  XWZHAO      Sunbeam payment schedule update
+ *BF_R_1072         20230328  XWZHAO      Add job run time to input parameters
  *
  */
  
@@ -48,6 +49,7 @@ public class AddAPSpltNgtRun extends ExtendM3Transaction {
   
   private String divi;
   private String xnow;
+  private String xjtm;
   
   private int XXCONO;
   
@@ -72,7 +74,11 @@ public class AddAPSpltNgtRun extends ExtendM3Transaction {
       mi.error("Division must be entered");
       return;
     }
-    
+    //A WZHAO 20230328 - new input parameter XJTM
+  	xjtm = mi.inData.get("XJTM") == null ? '' : mi.inData.get("XJTM").trim();
+  	if (xjtm == "?") {
+  	  xjtm = "";
+  	}
     XXCONO= program.LDAZD.CONO;
     
     DBAction queryCMNDIV = database.table("CMNDIV").index("00").selection("CCDIVI").build();
@@ -89,7 +95,10 @@ public class AddAPSpltNgtRun extends ExtendM3Transaction {
       def params = ["JOB": "EXT841", "TX30": "AP Split NightRun", "XCAT": "010", "SCTY": "1", "XNOW": "1", "UUID": referenceId]; // ingle run - now
       miCaller.call("SHS010MI", "SchedXM3Job", params, { result -> });
     } else {
-      def params = ["JOB": "EXT841", "TX30": "AP Split NightRun", "XCAT": "010", "SCTY": "2", "XNOW": "", "XEMO": "1", "XETU": "1", "XEWE": "1", "XETH": "1", "XEFR": "1", "XESA": "1", "XESU": "1","XJTM": "220000", "UUID": referenceId]; // run every night
+      if (xjtm.isEmpty()) {
+        xjtm = "220000";
+      }
+      def params = ["JOB": "EXT841", "TX30": "AP Split NightRun", "XCAT": "010", "SCTY": "2", "XNOW": "", "XEMO": "1", "XETU": "1", "XEWE": "1", "XETH": "1", "XEFR": "1", "XESA": "1", "XESU": "1","XJTM": xjtm, "UUID": referenceId]; // run every night
       miCaller.call("SHS010MI", "SchedXM3Job", params, { result -> });
     }
   }
