@@ -36,6 +36,7 @@
  *Modification area - M3
  *Nbr            Date       User id     Description
  *ABF_R_1072     20220330   XWZHAO       Mods Sunbeam payment schedule update
+ *ABF_R_1072     20230403   XWZHAO      Handle blank blank CUCD in the param string.
  
  /*
   * Add records to GLS840
@@ -244,13 +245,14 @@ public class EXT841 extends ExtendM3Batch {
         cuam = FAPIBH.get("E5CUAM").toString().trim();
         vtam = FAPIBH.get("E5VTAM").toString().trim();
         cucd = FAPIBH.get("E5CUCD").toString().trim();
+        logger.debug("CUCD_FAPIBH=" + acdt);
         crtp = FAPIBH.get("E5CRTP").toString().trim();
         arat = FAPIBH.get("E5ARAT").toString().trim();
         acdt = FAPIBH.get("E5ACDT").toString().trim();
         if (acdt.toInteger() == 0) {
           acdt = currentDate.toString();
         }
-        logger.debug("ACDT=" + acdt);
+        logger.debug("ACDT_FAPIBH=" + acdt);
         apcd = FAPIBH.get("E5APCD").toString().trim();
         cdp1 = FAPIBH.get("E5CDP1").toString().trim();
         cdt1 = FAPIBH.get("E5CDT1").toString().trim();
@@ -367,7 +369,7 @@ public class EXT841 extends ExtendM3Batch {
 	  String crtp_line = record.CRTP;
 	  String arat_line = record.ARAT;
 	  String acdt_line = record.ACDT;
-	  logger.debug("ACDT_LINE=" + acdt_line);
+	  logger.debug("ACDT_LINE=" + acdt_line + " CUCD_LINE=" + cucd_line);
 	  String apcd_line = record.APCD;
 	  String cdp1_line = record.CDP1;
 	  String cdt1_line = record.CDT1;
@@ -378,7 +380,7 @@ public class EXT841 extends ExtendM3Batch {
 	  String puno_line = record.PUNO;
     
     String parm = "" + id + noseries01 + "00000001" + divi + formatFixedLen(suno_line, 10) + formatFixedLen(spyn_line, 10) + formatFixedLen(sino_line, 24); 
-    parm += ivdt_line + dudt_line + formatFixedLen(ivam_line, 17) + vtcd_line + formatFixedLen(vtam_line, 17) + cucd + formatFixedLen(crtp_line, 2) + formatFixedLen(arat_line, 13);
+    parm += ivdt_line + dudt_line + formatFixedLen(ivam_line, 17) + vtcd_line + formatFixedLen(vtam_line, 17) + formatFixedLen(cucd_line,3) + formatFixedLen(crtp_line, 2) + formatFixedLen(arat_line, 13);
     parm += acdt_line + formatFixedLen(apcd_line, 10) + formatFixedLen(" ", 17) + formatFixedLen(cdp1_line, 6) + formatFixedLen(cdt1_line, 8) + formatFixedLen(cdp2_line, 6) + formatFixedLen(cdt2_line, 8) + formatFixedLen(cdp3_line, 6) + formatFixedLen(cdt3_line, 8) + formatFixedLen(puno_line, 10);
     logger.debug("parm=" + parm);
     def params = [ "CONO": XXCONO.toString(), "DIVI": divi, "KEY1": noseries01, "LINE": lineNo.toString(), "PARM": parm]; 
