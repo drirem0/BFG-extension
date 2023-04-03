@@ -36,7 +36,7 @@
  *Modification area - M3
  *Nbr            Date       User id     Description
  *ABF_R_1072     20220330   XWZHAO       Mods Sunbeam payment schedule update
- *ABF_R_1072     20230403   XWZHAO      Handle blank blank CUCD in the param string.
+ *ABF_R_1072     20230403   XWZHAO      Handle blank CUCD in the param string.
  
  /*
   * Add records to GLS840
