@@ -441,7 +441,7 @@ public class APInvoice extends ExtendM3Transaction {
       
       //adjustments  
       if(response.ATID.trim() >= "ADJ01" && response.ATID.trim() <= "ADJ99" && response.ATVA != null && response.ATVA.trim() !='N.'){
-        ad1r += response.OPDS + ' ';  
+        ad1r = ad1r + response.OPDS.trim() + ' ';  
       }
     }
     
