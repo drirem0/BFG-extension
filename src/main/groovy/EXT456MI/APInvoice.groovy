@@ -52,6 +52,7 @@ public class APInvoice extends ExtendM3Transaction {
   private String inbn;
   private String trno;
   private String itno;
+  private String var1;
   private String ceid;
   private String sino;
   private String grpr;
@@ -108,6 +109,7 @@ public class APInvoice extends ExtendM3Transaction {
   private double ad2x;  
   private double ca1x;  
   private double sunx;
+ 
   private String newx;
   private String agtd;
   private String itds;
@@ -123,7 +125,10 @@ public class APInvoice extends ExtendM3Transaction {
   private String agno;
   private double agnx;   
   private String grad;  
-  private String gra1;  
+  private String gra1;
+  
+  
+  
   private boolean found;
   
  
@@ -264,6 +269,7 @@ public class APInvoice extends ExtendM3Transaction {
       FGRECL.set("F2CONO", XXCONO);
       FGRECL.set("F2DIVI", divi);
       FGRECL.set("F2SUDO", sudo);
+      
       queryFGRECL.readAll(FGRECL, 3, 1, lstFGRECL);
       if (!found) {
         mi.error("Delivery No is invalid.");
@@ -299,13 +305,13 @@ public class APInvoice extends ExtendM3Transaction {
   */
   def deleteEXTIBL(String cono, String divi, String puno, String pnli) {
   
-    DBAction queryEXTIBL = database.table("EXTIBL").index("00").selection("EXCONO", "EXDIVI", "EXPUNO", "EXPNLI").build();
+    DBAction queryEXTIBL = database.table("EXTIBL").index("00").selection("EXCONO", "EXDIVI", "EXINBN").build();
     DBContainer EXTIBL = queryEXTIBL.getContainer();
     EXTIBL.set("EXCONO", XXCONO);
     EXTIBL.set("EXDIVI", divi);
-    EXTIBL.set("EXPUNO", puno);
-    EXTIBL.set("EXPNLI", pnli.toInteger());
-    queryEXTIBL.readAllLock(EXTIBL, 4, deleteEXTIBL);
+    EXTIBL.set("EXINBN", inbn.toInteger());
+    queryEXTIBL.readAll(EXTIBL, 3, 1, deleteEXTIBL);
+    
   }
   
   /*
@@ -383,6 +389,7 @@ public class APInvoice extends ExtendM3Transaction {
     EXTIBL.set("EXITDS", itds);
     EXTIBL.set("EXADEX", ad1r);
     EXTIBL.set("EXGROS", rat6);
+    EXTIBL.set("EXVAR1", var1);
     EXTIBL.set("EXRGDT", currentDate);
     EXTIBL.set("EXLMDT", currentDate);
     EXTIBL.set("EXRGTM", currentTime);
@@ -430,6 +437,11 @@ public class APInvoice extends ExtendM3Transaction {
         agtd = response.ATVA;  
       }
       
+      if(response.ATID.trim().equals("VAR01")){
+        var1 = response.ATVA;  
+      }
+      
+      
       if(response.ATID.trim().equals("REC01")){
         grwe = response.ATVN;  
       }
@@ -441,7 +453,9 @@ public class APInvoice extends ExtendM3Transaction {
       
       //adjustments  
       if(response.ATID.trim() >= "ADJ01" && response.ATID.trim() <= "ADJ99" && response.ATVA != null && response.ATVA.trim() !='N.'){
-        ad1r += response.OPDS + ' ';  
+        ad1r = ad1r + response.OPDS.trim() + ' ';  
+       
+        
       }
     }
     
@@ -475,7 +489,6 @@ public class APInvoice extends ExtendM3Transaction {
       // rate per tonnes 
       if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('BAS01')){
       
-    
         base = response.GRPR; 
         ra51 = base.toDouble() + grad.toDouble();
         rat5 = ra51.toString();
@@ -500,6 +513,24 @@ public class APInvoice extends ExtendM3Transaction {
         r511 = base1.toDouble() + gra1.toDouble();
         rat6 = r511.toString();
       }
+      
+      
+        if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('FDP01')){
+      
+        base = response.GRPR; 
+        ra51 = base.toDouble();
+        rat5 = ra51.toString();
+      }
+      
+       if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim().equals('FDP01')){
+        base1 = response.NLAM; 
+        r511 = base1.toDouble();
+        rat6 = r511.toString();
+      }
+      
+      
+      
+      
       
        // adjustments
       if(response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim() >= 'ADJ01' && response.PUNO.trim().equals(puno) && response.PNLI.trim().equals(pnli) && response.CEID.trim() <= 'ADJ99'){
