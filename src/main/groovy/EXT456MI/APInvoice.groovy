@@ -25,7 +25,7 @@
  *Modification area - M3
  *Nbr               Date      User id     Description
  *ABF_R_200         20220405  RDRIESSEN   Mods BF0456- Create extension file to connect to APS456PF AP Invoice print
- *
+ *ABF_R_200         20230418  RDRIESSEN   Mods BF0456- Trim blanks on EXADEX field 
  */
 
  import groovy.lang.Closure;
@@ -441,7 +441,7 @@ public class APInvoice extends ExtendM3Transaction {
       
       //adjustments  
       if(response.ATID.trim() >= "ADJ01" && response.ATID.trim() <= "ADJ99" && response.ATVA != null && response.ATVA.trim() !='N.'){
-        ad1r += response.OPDS + ' ';  
+        ad1r = ad1r + response.OPDS.trim() + ' ';  
       }
     }
     
