@@ -26,7 +26,7 @@
  *Nbr               Date      User id     Description
  *ABF_R_105        20220405  RDRIESSEN   Mods BF0105- Write to extension file EXTCLS as a basis for a Notice of Classification Report
  *ABF_R_105        20220511  KVERCO      Update for XtendM3 review feedback
- *
+ *ABF_R_105        20220512  RDRIESSEN   additional lines added to the report 
  */
 
  import groovy.lang.Closure
@@ -61,7 +61,11 @@
   private String itno;
   private String bins; 
   private String atnr;   
+  private String unms;
   private String atid; 
+  private String atvn;
+  private double atvn2;
+  
   private String atva;
   private String tx30; 
   private String tx15;
@@ -196,7 +200,7 @@
     int currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInteger();
   	int currentTime = Integer.valueOf(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
   	
-  	 def params01 = ["ITNO": itno.toString(),]; 
+  	def params01 = ["ITNO": itno.toString(),]; 
     
     def callback01 = {
       Map<String, String> response ->
@@ -283,7 +287,7 @@
 	  lstTestResults_Range = new ArrayList();
   		
   	Map<String,String> headers = ["Accept": "application/json"];
-    Map<String,String> params = [ "LMITNO":itno, "LMBREF":bref, "maxrecs": "99"];
+    Map<String,String> params = [ "LMITNO":itno, "LMBREF":bref, "maxrecs": "500"];
     String url = "/M3/m3api-rest/v2/execute/CMS100MI/Lst_ZATS101C";
       
     int nobins = 0;
@@ -297,14 +301,17 @@
       ArrayList<Map<String, String>> recordList = (ArrayList<Map<String, String>>) results[0]["records"];
       recordList.eachWithIndex { it, index ->
         Map<String, String> recordQMSTRS = (Map<String, String>) it;
-        if (lstTestResults_Range.size() < 99) {
-    	     suno = recordQMSTRS.ORPAN1;
+        if (lstTestResults_Range.size() < 500) {
+          suno = recordQMSTRS.ORPAN1;
     	    sunm = recordQMSTRS.IDSUNM;
     	    sudo = recordQMSTRS.ORPAN2;
-    	    nobins = nobins + 1;
+    	    
+    	    if(recordQMSTRS.ORPANR != '') { nobins = nobins + 1;
+    	    }
+    	    
     	    bins = recordQMSTRS.ORPANR;
     	    atnr = recordQMSTRS.LMATNR;
-    	    
+    	  
           DBAction actionEXTCLS = database.table("EXTCLS").build();
   	      DBContainer EXTCLS = actionEXTCLS.getContainer();
         
@@ -341,12 +348,14 @@
       ArrayList<Map<String, String>> recordList = (ArrayList<Map<String, String>>) results[0]["records"];
       recordList.eachWithIndex { it, index ->
         Map<String, String> recordQMSTRS = (Map<String, String>) it;
-        if (lstTestResults_Range01.size() < 99) {
+        if (lstTestResults_Range01.size() < 500) {
     	    atid = recordQMSTRS.AGATID;
     	    atva = recordQMSTRS.AGATVA;
+    	    atvn = recordQMSTRS.AGATVN;
     	    tx30 = recordQMSTRS.AATX30;
     	    tx15 = recordQMSTRS.PFTX15;
     	    tx31 = recordQMSTRS.PFTX30;
+    	    unms = recordQMSTRS.AAUNMS;
     	  
     	    if(atid == 'DRF01' ) {
             DBAction actionEXTCLS = database.table("EXTCLS").build();
@@ -388,7 +397,224 @@
   	        EXTCLS.set("EXCHID", program.getUser());
             actionEXTCLS.insert(EXTCLS, recordExists);
     	    }
-        }
+    	    
+    	    if(atid == 'DRF03') {
+    	      
+    	      DBAction actionEXTCLS = database.table("EXTCLS").build();
+  	        DBContainer EXTCLS = actionEXTCLS.getContainer();
+  	
+            EXTCLS.set("EXCONO", XXCONO);
+  	        EXTCLS.set("EXDIVI", divi);
+  	        EXTCLS.set("EXBREF", bref);
+  	        EXTCLS.set("EXITNO", itno);
+  	        EXTCLS.set("EXCAT1", 'I');
+  	        EXTCLS.set("EXREF1", atid + '- ' + tx30);
+  	        EXTCLS.set("EXREF2", atva);
+  	        EXTCLS.set("EXREF3", tx31);
+  	        EXTCLS.set("EXRGDT", currentDate);
+  	        EXTCLS.set("EXRGTM", currentTime);
+  	        EXTCLS.set("EXLMDT", currentDate);
+  	        EXTCLS.set("EXCHNO", 0);
+  	        EXTCLS.set("EXCHID", program.getUser());
+            actionEXTCLS.insert(EXTCLS, recordExists);
+    	    }
+    	    
+    	     if(atid == 'VAR01') {
+    	          
+    	      DBAction actionEXTCLS = database.table("EXTCLS").build();
+  	        DBContainer EXTCLS = actionEXTCLS.getContainer();
+  	
+            EXTCLS.set("EXCONO", XXCONO);
+  	        EXTCLS.set("EXDIVI", divi);
+  	        EXTCLS.set("EXBREF", bref);
+  	        EXTCLS.set("EXITNO", itno);
+  	        EXTCLS.set("EXCAT1", 'I');
+  	        EXTCLS.set("EXREF1", atid + '- ' + tx30);
+  	        EXTCLS.set("EXREF2", atva);
+  	        EXTCLS.set("EXREF3", tx31);
+  	        EXTCLS.set("EXRGDT", currentDate);
+  	        EXTCLS.set("EXRGTM", currentTime);
+  	        EXTCLS.set("EXLMDT", currentDate);
+  	        EXTCLS.set("EXCHNO", 0);
+  	        EXTCLS.set("EXCHID", program.getUser());
+            actionEXTCLS.insert(EXTCLS, recordExists);
+    	    }
+    	    
+    	     if(atid == 'SIR01' && !atvn.equals("0.0000")) {
+    	        
+    	      unms = 'KG';
+    	      def df = new DecimalFormat("#0.000")
+            def formatted = df.format(atvn.toDouble() * 1000);
+    	     
+    	      DBAction actionEXTCLS = database.table("EXTCLS").build();
+  	        DBContainer EXTCLS = actionEXTCLS.getContainer();
+  	
+            EXTCLS.set("EXCONO", XXCONO);
+  	        EXTCLS.set("EXDIVI", divi);
+  	        EXTCLS.set("EXBREF", bref);
+  	        EXTCLS.set("EXITNO", itno);
+  	        EXTCLS.set("EXCAT1", 'I');
+  	        EXTCLS.set("EXREF1", atid + '- ' + tx30);
+  	        EXTCLS.set("EXREF2", df.format(atvn.toDouble() * 1000) + ' ' + unms);
+  	        EXTCLS.set("EXREF3", tx31);
+  	        EXTCLS.set("EXRGDT", currentDate);
+  	        EXTCLS.set("EXRGTM", currentTime);
+  	        EXTCLS.set("EXLMDT", currentDate);
+  	        EXTCLS.set("EXCHNO", 0);
+  	        EXTCLS.set("EXCHID", program.getUser());
+            actionEXTCLS.insert(EXTCLS, recordExists);
+    	     }
+    	    
+    	     if(atid == 'SIR02' && !atvn.equals("0.0000")) {
+    	       
+    	      unms = 'KG';
+    	      def df = new DecimalFormat("#0.000")
+            def formatted = df.format(atvn.toDouble() * 1000);
+    	     
+    	      DBAction actionEXTCLS = database.table("EXTCLS").build();
+  	        DBContainer EXTCLS = actionEXTCLS.getContainer();
+  	
+            EXTCLS.set("EXCONO", XXCONO);
+  	        EXTCLS.set("EXDIVI", divi);
+  	        EXTCLS.set("EXBREF", bref);
+  	        EXTCLS.set("EXITNO", itno);
+  	        EXTCLS.set("EXCAT1", 'I');
+  	        EXTCLS.set("EXREF1", atid + '- ' + tx30);
+  	        EXTCLS.set("EXREF2", df.format(atvn.toDouble() * 1000) + ' ' + unms);
+  	        EXTCLS.set("EXREF3", tx31);
+  	        EXTCLS.set("EXRGDT", currentDate);
+  	        EXTCLS.set("EXRGTM", currentTime);
+  	        EXTCLS.set("EXLMDT", currentDate);
+  	        EXTCLS.set("EXCHNO", 0);
+  	        EXTCLS.set("EXCHID", program.getUser());
+            actionEXTCLS.insert(EXTCLS, recordExists);
+    	    }
+    	    
+    	     if(atid == 'SIR03' && !atvn.equals("0.0000")) {
+    	       
+    	      unms = 'KG';
+    	      def df = new DecimalFormat("#0.000")
+            def formatted = df.format(atvn.toDouble() * 1000);
+    	     
+    	      DBAction actionEXTCLS = database.table("EXTCLS").build();
+  	        DBContainer EXTCLS = actionEXTCLS.getContainer();
+  	
+            EXTCLS.set("EXCONO", XXCONO);
+  	        EXTCLS.set("EXDIVI", divi);
+  	        EXTCLS.set("EXBREF", bref);
+  	        EXTCLS.set("EXITNO", itno);
+  	        EXTCLS.set("EXCAT1", 'I');
+  	        EXTCLS.set("EXREF1", atid + '- ' + tx30);
+  	        EXTCLS.set("EXREF2", df.format(atvn.toDouble() * 1000) + ' ' + unms);
+  	        EXTCLS.set("EXREF3", tx31);
+  	        EXTCLS.set("EXRGDT", currentDate);
+  	        EXTCLS.set("EXRGTM", currentTime);
+  	        EXTCLS.set("EXLMDT", currentDate);
+  	        EXTCLS.set("EXCHNO", 0);
+  	        EXTCLS.set("EXCHID", program.getUser());
+            actionEXTCLS.insert(EXTCLS, recordExists);
+    	    }
+    	    
+    	     if(atid == 'SIR04' && !atvn.equals("0.0000")) {
+    	       
+    	      unms = 'KG';
+    	      def df = new DecimalFormat("#0.000")
+            def formatted = df.format(atvn.toDouble() * 1000);
+    	      
+    	      DBAction actionEXTCLS = database.table("EXTCLS").build();
+  	        DBContainer EXTCLS = actionEXTCLS.getContainer();
+  	
+            EXTCLS.set("EXCONO", XXCONO);
+  	        EXTCLS.set("EXDIVI", divi);
+  	        EXTCLS.set("EXBREF", bref);
+  	        EXTCLS.set("EXITNO", itno);
+  	        EXTCLS.set("EXCAT1", 'I');
+  	        EXTCLS.set("EXREF1", atid + '- ' + tx30);
+  	        EXTCLS.set("EXREF2", df.format(atvn.toDouble() * 1000) + ' ' + unms);
+  	        EXTCLS.set("EXREF3", tx31);
+  	        EXTCLS.set("EXRGDT", currentDate);
+  	        EXTCLS.set("EXRGTM", currentTime);
+  	        EXTCLS.set("EXLMDT", currentDate);
+  	        EXTCLS.set("EXCHNO", 0);
+  	        EXTCLS.set("EXCHID", program.getUser());
+            actionEXTCLS.insert(EXTCLS, recordExists);
+    	    }
+    	    
+    	     if(atid == 'OVR01' && !atvn.equals("0.0000")) {
+    	       
+    	      unms = 'KG';
+    	      def df = new DecimalFormat("#0.000")
+            def formatted = df.format(atvn.toDouble() * 1000);
+    	     
+    	      DBAction actionEXTCLS = database.table("EXTCLS").build();
+  	        DBContainer EXTCLS = actionEXTCLS.getContainer();
+  	
+            EXTCLS.set("EXCONO", XXCONO);
+  	        EXTCLS.set("EXDIVI", divi);
+  	        EXTCLS.set("EXBREF", bref);
+  	        EXTCLS.set("EXITNO", itno);
+  	        EXTCLS.set("EXCAT1", 'I');
+  	        EXTCLS.set("EXREF1", atid + '- ' + tx30);
+  	        EXTCLS.set("EXREF2", df.format(atvn.toDouble() * 1000) + ' ' + unms);
+  	        EXTCLS.set("EXREF3", tx31);
+  	        EXTCLS.set("EXRGDT", currentDate);
+  	        EXTCLS.set("EXRGTM", currentTime);
+  	        EXTCLS.set("EXLMDT", currentDate);
+  	        EXTCLS.set("EXCHNO", 0);
+  	        EXTCLS.set("EXCHID", program.getUser());
+            actionEXTCLS.insert(EXTCLS, recordExists);
+    	    }
+    	    
+    	     if(atid == 'GRE01' && !atvn.equals("0.0000")) {
+    	       
+    	      unms = 'KG';
+    	      def df = new DecimalFormat("#0.000")
+            def formatted = df.format(atvn.toDouble() * 1000);
+    	      
+    	      DBAction actionEXTCLS = database.table("EXTCLS").build();
+  	        DBContainer EXTCLS = actionEXTCLS.getContainer();
+  	
+            EXTCLS.set("EXCONO", XXCONO);
+  	        EXTCLS.set("EXDIVI", divi);
+  	        EXTCLS.set("EXBREF", bref);
+  	        EXTCLS.set("EXITNO", itno);
+  	        EXTCLS.set("EXCAT1", 'I');
+  	        EXTCLS.set("EXREF1", atid + '- ' + tx30);
+  	        EXTCLS.set("EXREF2", df.format(atvn.toDouble() * 1000) + ' ' + unms);
+  	        EXTCLS.set("EXREF3", tx31);
+  	        EXTCLS.set("EXRGDT", currentDate);
+  	        EXTCLS.set("EXRGTM", currentTime);
+  	        EXTCLS.set("EXLMDT", currentDate);
+  	        EXTCLS.set("EXCHNO", 0);
+  	        EXTCLS.set("EXCHID", program.getUser());
+            actionEXTCLS.insert(EXTCLS, recordExists);
+    	    }
+    	    
+    	     if(atid == 'DAM01' && !atvn.equals("0.0000")) {
+    	       
+    	      unms = 'KG';
+    	      def df = new DecimalFormat("#0.000")
+            def formatted = df.format(atvn.toDouble() * 1000);
+           
+    	      DBAction actionEXTCLS = database.table("EXTCLS").build();
+  	        DBContainer EXTCLS = actionEXTCLS.getContainer();
+  	
+            EXTCLS.set("EXCONO", XXCONO);
+  	        EXTCLS.set("EXDIVI", divi);
+  	        EXTCLS.set("EXBREF", bref);
+  	        EXTCLS.set("EXITNO", itno);
+  	        EXTCLS.set("EXCAT1", 'I');
+  	        EXTCLS.set("EXREF1", atid + '- ' + tx30);
+  	        EXTCLS.set("EXREF2", df.format(atvn.toDouble() * 1000) + ' ' + unms);
+  	        EXTCLS.set("EXREF3", tx31);
+  	        EXTCLS.set("EXRGDT", currentDate);
+  	        EXTCLS.set("EXRGTM", currentTime);
+  	        EXTCLS.set("EXLMDT", currentDate);
+  	        EXTCLS.set("EXCHNO", 0);
+  	        EXTCLS.set("EXCHID", program.getUser());
+            actionEXTCLS.insert(EXTCLS, recordExists);
+    	    }
+    	  }
       }
     }
 	  
